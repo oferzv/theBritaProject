@@ -1,55 +1,43 @@
 /*
-   ESP8266 NodeMCU AJAX Demo
-   Updates and Gets data from webpage without page refresh
-   https://circuits4you.com
+ The Brita Project
+ By: Ofer Zvik & Tal Ofer
 */
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-
 #include "index.h" //Our HTML webpage contents with javascripts
-
-#define LED 2  //On board LED
+#include <FastLED.h>
+#include <Servo.h>
+#include "HX711.h"
 
 //SSID and Password of your WiFi router
-const char* ssid = "YG10";
-const char* password = "ABAeven2";
+const char* ssid = "****";
+const char* password = "*****";
 
 ESP8266WebServer server(80); //Server on port 80
+Servo coverservo;  //lid cover servo
+HX711 scale;
 
 
-#include <Servo.h>
-
-Servo coverservo;  // create servo object
+// servo
 #define COVERSERVO_OPEN 0
 #define COVERSERVO_CLOSE 90
 
 
 
-#include "HX711.h"
-
-
 // HX711 circuit wiring
-const int LOADCELL_DOUT_PIN = D2;
-const int LOADCELL_SCK_PIN = D1;
-
-float calibration_factor = 0;
-HX711 scale;
-float weight;
-
+#define LOADCELL_DOUT_PIN  D2
+#define LOADCELL_SCK_PIN  D1
 #define MIN_WEIGHT 750
 #define FULL_WEIGHT 1600
 
-#include <FastLED.h>
 
-// How many leds in your strip?
+
+// addressable
 #define NUM_LEDS 8
-
 #define DATA_PIN D5
-
 // Define the array of leds
 CRGB leds[NUM_LEDS];
-
 #define BRIGHTNESS 96
 
 
@@ -58,6 +46,12 @@ CRGB leds[NUM_LEDS];
 #define SS_FILL_PITCHER 2
 #define SS_FULL_PITCHER 3
 
+#define LED 2  //On board LED
+
+#define RELAY D7
+
+float weight;
+float calibration_factor = 0;
 byte systemState;
 unsigned long systemStateMillis;
 String stateName = "";
@@ -106,7 +100,10 @@ void setup(void) {
 
   //Onboard LED port Direction output
   pinMode(LED, OUTPUT);
+  pinMode(RELAY, OUTPUT);
+  digitalWrite(RELAY, HIGH);
 
+  
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -162,10 +159,11 @@ void loop(void) {
     case SS_FILL_PITCHER:
       stateName = "Filling Pitcher";
       if (weight > FULL_WEIGHT) {
-        Serial.println("CLOSE WATRER");
+        digitalWrite(RELAY, HIGH);
+        delay(5000); // wait for refill to finish water dripping :)
         setSystemState(SS_FULL_PITCHER);
       } else if (weight < MIN_WEIGHT) {
-        Serial.println("CLOSE WATRER");
+        digitalWrite(RELAY, HIGH);
         setSystemState(SS_IDLE);
       }
       break;
@@ -182,6 +180,7 @@ void setSystemState(byte newState) {
   switch (newState) {
     case SS_IDLE:
       setLedColor(CRGB::Blue);
+      digitalWrite(RELAY, HIGH);
       moveServo(COVERSERVO_CLOSE);
       break;
     case SS_PITCHER_PLACED:
@@ -190,10 +189,12 @@ void setSystemState(byte newState) {
     case SS_FILL_PITCHER:
       setLedColor(CRGB::Red);
       moveServo(COVERSERVO_OPEN);
-      Serial.println("START WATER");
+      delay(2000);
+      digitalWrite(RELAY, LOW);
       break;
     case SS_FULL_PITCHER:
       setLedColor(CRGB::Green);
+      digitalWrite(RELAY, HIGH);
       moveServo(COVERSERVO_CLOSE);
       break;
   }
