@@ -1,18 +1,32 @@
 const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html>
-<body>
+<body >
 
-<div id="demo">
-<h1>The ESP8266 NodeMCU Brita project</h1>
- <button type="button" onclick="sendData(1)">CLOSE LID</button>
-  <button type="button" onclick="sendData(0)">OPEN LID</button><BR> 
-</div>
+<div id="wrap" style="display: inline-block; text-align:left;">
 
-<div>
-  SCALE VALUE : <span id="ADCValue">0</span><br>
-  SYSTEM STATE  : <span id="SYSState">NA</span><br>
-  LED State is : <span id="LEDState">NA</span><br>
+  <h1>The Brita IoT project</h1>
+  
+  <div style="float:left;">
+    
+    SYSTEM TIME:  <span id="SysTime">NA</span>
+    <br>
+    SCALE VALUE : <span id="ADCValue">0</span>
+    <br>
+    SYSTEM STATE  : <span id="SYSState">NA</span>
+    <br>
+    LED State is : <span id="LEDState">NA</span>
+    <br><br>
+
+    <button type="button" onclick="sendData(1)">CLOSE LID</button>
+    <button type="button" onclick="sendData(0)">OPEN LID</button><BR> 
+  </div>
+  <div style="float:left; padding-left: 15px;">
+    <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/853293/widgets/97382"></iframe>
+    <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/853293/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Water+Refill&type=line&yaxis=Water+in+ML"></iframe>
+
+  </div>
+  
 </div>
 <script>
 function sendData(led) {
@@ -37,6 +51,7 @@ function getData() {
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       resArray = this.responseText.split(",");
+      document.getElementById("SysTime").innerHTML =resArray[2];
       document.getElementById("ADCValue").innerHTML =resArray[1];
       document.getElementById("SYSState").innerHTML =resArray[0];
       

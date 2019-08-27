@@ -1,6 +1,6 @@
 /*
- The Brita Project
- By: Ofer Zvik & Tal Ofer
+  The Brita Project
+  By: Ofer Zvik & Tal Ofer
 */
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -9,7 +9,12 @@
 #include <FastLED.h>
 #include <Servo.h>
 #include "HX711.h"
-#include "wifi_info.h"
+#include "secrets.h"
+#include "NTPProcess.h"
+#include "TSProcess.h"
+
+char ssid[] = SECRET_SSID;   // your network SSID (name)
+char password[] = SECRET_PASS;   // your network password
 
 
 ESP8266WebServer server(80); //Server on port 80
@@ -53,6 +58,9 @@ float calibration_factor = 0;
 byte systemState;
 unsigned long systemStateMillis;
 String stateName = "";
+// used to know how much water we added
+int firstScaleResult = 0;
+
 //===============================================================
 // This routine is executed when you open its IP in browser
 //===============================================================
@@ -64,7 +72,7 @@ void handleRoot() {
 
 void handleDataRead() {
   String adcValue = String(weight, 2);
-  server.send(200, "text/plane", stateName + "," + adcValue);
+  server.send(200, "text/plane", stateName + "," + adcValue + "," + timeClient.getFormattedTime());
 }
 
 
@@ -101,7 +109,7 @@ void setup(void) {
   pinMode(RELAY, OUTPUT);
   digitalWrite(RELAY, HIGH);
 
-  
+
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -121,6 +129,11 @@ void setup(void) {
   server.begin();                  //Start server
   Serial.println("HTTP server started");
 
+  // seting up NTP
+  NTPSetup();
+  // things speak setup
+  TSSetup();
+
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
   scale.set_scale(190.f);
@@ -135,8 +148,13 @@ void setup(void) {
 //==============================================================
 //                     LOOP
 //==============================================================
+
 void loop(void) {
+
+  // get weight
   weight = scale.get_units();
+
+  // switch by stystem state
   switch (systemState) {
     case SS_IDLE:
       stateName = "No Pitcher";
@@ -151,7 +169,8 @@ void loop(void) {
         else if (weight < MIN_WEIGHT)
           setSystemState(SS_IDLE);
         else
-          setSystemState(SS_FILL_PITCHER);
+          firstScaleResult = weight; //save the start point
+        setSystemState(SS_FILL_PITCHER);
       }
       break;
     case SS_FILL_PITCHER:
@@ -160,6 +179,7 @@ void loop(void) {
         digitalWrite(RELAY, HIGH);
         delay(5000); // wait for refill to finish water dripping :)
         setSystemState(SS_FULL_PITCHER);
+        TSUpdate(stateName, weight - firstScaleResult);
       } else if (weight < MIN_WEIGHT) {
         digitalWrite(RELAY, HIGH);
         setSystemState(SS_IDLE);
@@ -170,8 +190,13 @@ void loop(void) {
       if (weight < MIN_WEIGHT)
         setSystemState(SS_IDLE);
       break;
-  }
-  server.handleClient();          //Handle client requests
+  } //end switch
+
+  //Handle client requests
+  server.handleClient();
+  // update NTP
+  timeClient.update();
+
 }
 
 void setSystemState(byte newState) {
