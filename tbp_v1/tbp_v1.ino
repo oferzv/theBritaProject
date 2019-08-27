@@ -9,10 +9,8 @@
 #include <FastLED.h>
 #include <Servo.h>
 #include "HX711.h"
+#include "wifi_info.h"
 
-//SSID and Password of your WiFi router
-const char* ssid = "****";
-const char* password = "*****";
 
 ESP8266WebServer server(80); //Server on port 80
 Servo coverservo;  //lid cover servo
