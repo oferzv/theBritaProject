@@ -1,5 +1,4 @@
 const char MAIN_page[] PROGMEM = R"=====(
-<!DOCTYPE html>
 <html>
 <body >
 
@@ -20,12 +19,16 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <button type="button" onclick="sendData(1)">CLOSE LID</button>
     <button type="button" onclick="sendData(0)">OPEN LID</button><BR> 
+
+    <Br><BR>
+    <button onclick="window.location.href='/update'">Update Firmware</button>
+    
   </div>
   <div style="float:left; padding-left: 15px;">
     <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/853293/widgets/97382"></iframe>
     <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/853293/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Water+Refill&type=line&yaxis=Water+in+ML"></iframe>
-
   </div>
+  
   
 </div>
 <script>

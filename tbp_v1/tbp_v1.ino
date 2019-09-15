@@ -5,7 +5,9 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include "index.h" //Our HTML webpage contents with javascripts
+#include <ESP8266mDNS.h>
+#include <ESP8266HTTPUpdateServer.h>
+#include "index.h" // HTML webpage contents with javascripts
 #include <FastLED.h>
 #include <Servo.h>
 #include "HX711.h"
@@ -13,11 +15,14 @@
 #include "NTPProcess.h"
 #include "TSProcess.h"
 
-char ssid[] = SECRET_SSID;   // your network SSID (name)
-char password[] = SECRET_PASS;   // your network password
+const char* host = "brita-webupdate";
+const char ssid[] = SECRET_SSID;   // your network SSID (name)
+const char password[] = SECRET_PASS;   // your network password
 
 
 ESP8266WebServer server(80); //Server on port 80
+ESP8266HTTPUpdateServer httpUpdater;
+
 Servo coverservo;  //lid cover servo
 HX711 scale;
 
@@ -68,7 +73,6 @@ void handleRoot() {
   String s = MAIN_page; //Read HTML contents
   server.send(200, "text/html", s); //Send web page
 }
-
 
 void handleDataRead() {
   String adcValue = String(weight, 2);
@@ -123,27 +127,36 @@ void setup(void) {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
+//  MDNS.begin(host);
+
+  httpUpdater.setup(&server);
+ 
   server.on("/", handleRoot);      //Which routine to handle at root location. This is display page
   server.on("/setLED", handleLED);
   server.on("/readData", handleDataRead);
   server.begin();                  //Start server
   Serial.println("HTTP server started");
 
+//  MDNS.addService("http", "tcp", 80);
+
   // seting up NTP
   NTPSetup();
   // things speak setup
   TSSetup();
 
+  Serial.println("Scale setup begin");
+  //HX-711 setup
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-
   scale.set_scale(190.f);
   scale.tare();
+  Serial.println("Scale setup done");
 
   moveServo(COVERSERVO_CLOSE);
 
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
   setSystemState(SS_IDLE);
+  Serial.println("Setup done!!");
 }
 //==============================================================
 //                     LOOP
